@@ -48,6 +48,31 @@ python image_archiver_v2.py
 ### 方法二：使用 BAT 脚本 (方便双击运行)
 直接运行 `Deploy_Portable.bat` 文件
 将脚本自动添加到 Windows 任务计划程序中，设置为每天自动运行。
+**目录结构要求：**
+确保解压后的文件夹中包含以下核心文件：
+*   `Deploy_Portable.bat` (一键部署脚本)
+*   `image_archiver_v2.py` (归档主程序)
+*   `python_env/` 文件夹 (内置 Python 运行环境)
+
+**部署步骤：**
+
+1.  **以管理员身份运行脚本**：
+    *   找到 `Deploy_Portable.bat` 文件。
+    *   鼠标右键点击该文件，选择 **“以管理员身份运行” (Run as Administrator)**。
+    *   *注意：注册 Windows 任务计划通常需要管理员权限，直接双击运行可能会导致“任务注册失败”。*
+
+2.  **自动配置**：
+    *   脚本会自动识别当前路径下的 `python_env` 环境。
+    *   自动创建名为 `Camera_Image_Archiver_Portable` 的 Windows 计划任务。
+    *   **默认策略**：每天凌晨 **02:00** 自动唤醒并执行归档流程。
+
+3.  **验证运行**：
+    *   脚本执行完毕后会提示是否立即测试。输入 `Y` 并回车，可立即触发一次后台运行。
+    *   运行结果和详细记录请查看同目录下的日志文件：`archive_log.txt`。
+
+**如何卸载/停止：**
+如需取消自动归档，请打开“任务计划程序”，找到名为 `Camera_Image_Archiver_Portable` 的任务并删除即可。
+
 
 ## 📝 日志与排错
 
