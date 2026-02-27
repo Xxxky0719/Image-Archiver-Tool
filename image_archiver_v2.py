@@ -8,7 +8,7 @@ import sys
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # 设置清理周期（天）
-RETENTION_DAYS = 60
+RETENTION_DAYS = 45
 
 # 新增：指定需要归档的文件类型（请使用小写，并以.开头）
 # 可以添加多种类型，例如: ('.jpg', '.jpeg', '.png')
@@ -33,6 +33,7 @@ def write_log(message):
 
 def run_full_archive():
     print("--- 进程已进入 run_full_archive (多路径顺序版) ---")
+    print("--- Don't Close the Windows ---")
     write_log("任务开始...")
     now = datetime.now()
     today_str = now.strftime('%Y%m%d')
@@ -40,7 +41,7 @@ def run_full_archive():
     # --- 新增：定义处理窗口 (Time Window) ---
     # 仅处理最近3天内的历史文件
     process_limit_start = (now - timedelta(days=3)).strftime('%Y%m%d')
-    # 过期清理标准维持 60 天
+    # 自动清理设定时间外的图片
     expiry_limit = (now - timedelta(days=RETENTION_DAYS)).strftime('%Y%m%d')
     
     write_log(f"--- 归档启动 (仅处理范围: {process_limit_start} 至 {today_str}) ---")
@@ -78,14 +79,19 @@ def run_full_archive():
                                 # 增加文件占用检查，防止搬运正在写入的文件
                                 shutil.move(entry.path, os.path.join(target_dir, entry.name))
                                 moved_count += 1
-                            except Exception:
+                            except (IOError, OSError) as move_error:
                                 error_count += 1
+                                write_log(f"  [错误] 移动文件失败: {entry.path}. 原因: {move_error}")
                         
                         # 如果文件超出了3天窗口且早于今天，脚本将直接跳过它（避免全量扫描带来的负担）
 
             if created_folders:
                 write_log(f"新建文件夹: {', '.join(sorted(created_folders))}")
-            write_log(f"执行结果: 成功移动 {moved_count} 个最近3天的指定类型文件。")
+            
+            summary_log = f"执行结果: 成功移动 {moved_count} 个文件。"
+            if error_count > 0:
+                summary_log += f" {error_count} 个文件移动失败 (详见上方错误日志)。"
+            write_log(summary_log)
 
         except Exception as e:
             write_log(f"扫描异常: {str(e)}")
