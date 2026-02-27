@@ -3,6 +3,12 @@ import shutil
 from datetime import datetime, timedelta
 import sys
 
+# =====================================================
+#  Image Archiver Tool
+#  Developed by: Michael Xiang 
+#  Mail:mxiang@Aligntech.com
+# =====================================================
+
 # ================= 路径与逻辑自适应配置 =================
 # 脚本所在目录 (用于存放日志)
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -39,6 +45,7 @@ def run_full_archive():
     print("--- 请注意  ---")
     print("--- 进程已进入 run_full_archive  ---")
     print("--- 正在进行图片自动归档，请勿关闭弹窗 ---")
+    print("--- Tool Developed by Michael ---")
     print("--- 将会持续3-5分钟，请耐心等待 ---")
     print("--- 可以最小化窗口 ---")
     print("--- 不影响正常操作 ---")

@@ -5,7 +5,8 @@ setlocal enabledelayedexpansion
 cd /d "%~dp0"
 
 echo ===========================================
-echo    相机图片归档工具 - 免安装绿色版部署
+echo    相机图片归档工具 - 绿色版部署
+echo    Developed by Michael Xiang
 echo ===========================================
 echo.
 
