@@ -1,0 +1,90 @@
+import os
+import shutil
+from datetime import datetime, timedelta
+import sys
+
+# ================= 路径与逻辑自适应配置 =================
+# 自动获取脚本当前所在文件夹，实现跨电脑“开箱即用”
+SOURCE_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
+
+# 设置清理周期（天）
+RETENTION_DAYS = 60 
+# =====================================================
+
+def write_log(message):
+    """记录日志到当前目录下的 archive_log.txt"""
+    log_file = os.path.join(SOURCE_DIRECTORY, "archive_log.txt")
+    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    try:
+        with open(log_file, "a", encoding="utf-8") as f:
+            f.write(f"[{timestamp}] {message}\n")
+    except Exception as e:
+        print(f"无法写入日志: {e}")
+
+def run_full_archive():
+    print("--- 进程已进入 run_full_archive (优化版) ---")
+    write_log("任务开始...")
+    now = datetime.now()
+    today_str = now.strftime('%Y%m%d')
+    
+    # --- 新增：定义处理窗口 (Time Window) ---
+    # 仅处理最近3天内的历史文件
+    process_limit_start = (now - timedelta(days=3)).strftime('%Y%m%d')
+    # 过期清理标准维持 60 天
+    expiry_limit = (now - timedelta(days=RETENTION_DAYS)).strftime('%Y%m%d')
+    
+    write_log(f"--- 归档启动 (仅处理范围: {process_limit_start} 至 {today_str}) ---")
+    
+    moved_count = 0
+    error_count = 0
+    created_folders = set()
+
+    try:
+        with os.scandir(SOURCE_DIRECTORY) as entries:
+            for entry in entries:
+                if entry.is_file() and entry.name not in ["archive_log.txt", os.path.basename(__file__)]:
+                    # 获取文件最后修改时间
+                    mtime_dt = datetime.fromtimestamp(entry.stat().st_mtime)
+                    mtime_str = mtime_dt.strftime('%Y%m%d')
+                    
+                    # --- 核心逻辑修改：范围过滤 ---
+                    # 1. 必须早于今天 (mtime_str < today_str)
+                    # 2. 必须在3天窗口内 (mtime_str >= process_limit_start)
+                    if process_limit_start <= mtime_str < today_str:
+                        target_dir = os.path.join(SOURCE_DIRECTORY, mtime_str)
+                        
+                        if not os.path.exists(target_dir):
+                            os.makedirs(target_dir)
+                            created_folders.add(mtime_str)
+                        
+                        try:
+                            # 增加文件占用检查，防止搬运正在写入的文件
+                            shutil.move(entry.path, os.path.join(target_dir, entry.name))
+                            moved_count += 1
+                        except Exception:
+                            error_count += 1
+                    
+                    # 如果文件超出了3天窗口且早于今天，脚本将直接跳过它（避免全量扫描带来的负担）
+
+        if created_folders:
+            write_log(f"新建文件夹: {', '.join(sorted(created_folders))}")
+        write_log(f"执行结果: 成功移动 {moved_count} 张最近3天的图片, 跳过/忽略其他。")
+
+    except Exception as e:
+        write_log(f"扫描异常: {str(e)}")
+
+    # 2. 过期数据清理 (针对 YYYYMMDD 格式的文件夹)
+    try:
+        with os.scandir(SOURCE_DIRECTORY) as entries:
+            for entry in entries:
+                if entry.is_dir() and len(entry.name) == 8 and entry.name.isdigit():
+                    if entry.name <= expiry_limit:
+                        shutil.rmtree(entry.path)
+                        write_log(f"清理成功: 已删除过期目录 {entry.name}")
+    except Exception as e:
+        write_log(f"清理异常: {str(e)}")
+
+    write_log("--- 任务结束 ---\n")
+
+if __name__ == "__main__":
+    run_full_archive()
