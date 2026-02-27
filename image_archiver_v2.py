@@ -10,6 +10,10 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 # 设置清理周期（天）
 RETENTION_DAYS = 45
 
+# 设置归档处理的时间窗口（天）
+# 仅处理最近 N 天内的文件
+PROCESS_DAYS_WINDOW = 1 #时间需要 ≥ 1天
+
 # 新增：指定需要归档的文件类型（请使用小写，并以.开头）
 # 可以添加多种类型，例如: ('.jpg', '.jpeg', '.png')
 ARCHIVE_FILE_TYPES = ('.jpg',)
@@ -32,15 +36,29 @@ def write_log(message):
         print(f"无法写入日志: {e}")
 
 def run_full_archive():
-    print("--- 进程已进入 run_full_archive (多路径顺序版) ---")
-    print("--- Don't Close the Windows ---")
+    print("--- 请注意  ---")
+    print("--- 进程已进入 run_full_archive  ---")
+    print("--- 正在进行图片自动归档，请勿关闭弹窗 ---")
+    print("--- 将会持续3-5分钟，请耐心等待 ---")
+    print("--- 可以最小化窗口 ---")
+    print("--- 不影响正常操作 ---")
+    print("--- Please note  ---")
+    print("--- The process has entered run_full_archive ---")
+    print("--- Automatic image archiving is in progress; please do not close the window. ---")
+    print("--- This will take 3-5 minutes, please wait patiently. ---")
+    print("--- You can minimize the window. ---")
+    print("--- It will not affect normal operation. ---")
     write_log("任务开始...")
+
+    if PROCESS_DAYS_WINDOW <= 0:
+        write_log(f"配置警告: PROCESS_DAYS_WINDOW 设置为 {PROCESS_DAYS_WINDOW}。此值应为正整数(>=1)，当值为0或负数时，将不会归档任何文件。")
+
     now = datetime.now()
     today_str = now.strftime('%Y%m%d')
     
     # --- 新增：定义处理窗口 (Time Window) ---
-    # 仅处理最近3天内的历史文件
-    process_limit_start = (now - timedelta(days=3)).strftime('%Y%m%d')
+    # 仅处理最近 N 天内的历史文件
+    process_limit_start = (now - timedelta(days=PROCESS_DAYS_WINDOW)).strftime('%Y%m%d')
     # 自动清理设定时间外的图片
     expiry_limit = (now - timedelta(days=RETENTION_DAYS)).strftime('%Y%m%d')
     
@@ -67,7 +85,7 @@ def run_full_archive():
                         
                         # --- 核心逻辑修改：范围过滤 ---
                         # 1. 必须早于今天 (mtime_str < today_str)
-                        # 2. 必须在3天窗口内 (mtime_str >= process_limit_start)
+                        # 2. 必须在设定窗口内 (mtime_str >= process_limit_start)
                         if process_limit_start <= mtime_str < today_str:
                             target_dir = os.path.join(source_dir, mtime_str)
                             
@@ -83,7 +101,7 @@ def run_full_archive():
                                 error_count += 1
                                 write_log(f"  [错误] 移动文件失败: {entry.path}. 原因: {move_error}")
                         
-                        # 如果文件超出了3天窗口且早于今天，脚本将直接跳过它（避免全量扫描带来的负担）
+                        # 如果文件超出了设定窗口且早于今天，脚本将直接跳过它（避免全量扫描带来的负担）
 
             if created_folders:
                 write_log(f"新建文件夹: {', '.join(sorted(created_folders))}")
